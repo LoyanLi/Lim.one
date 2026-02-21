@@ -338,6 +338,20 @@ if ($MakeNSIS) {
   if (-not $makensis) {
     Write-Warning "makensis not found — skipping installer creation. Install NSIS: https://nsis.sourceforge.io"
   } else {
+    # Download WebView2 Runtime bootstrapper (silent installer)
+    $WebView2Url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
+    $WebView2BootstrapperPath = Join-Path $env:TEMP "MicrosoftEdgeWebView2Setup.exe"
+
+    if (-not (Test-Path $WebView2BootstrapperPath)) {
+      try {
+        Write-Host "Downloading WebView2 Runtime bootstrapper..."
+        Invoke-WebRequest -Uri $WebView2Url -OutFile $WebView2BootstrapperPath -ErrorAction Stop
+        Write-Host "WebView2 bootstrapper downloaded: $WebView2BootstrapperPath"
+      } catch {
+        Write-Warning "Failed to download WebView2 bootstrapper: $_. Installer will not include WebView2 auto-install."
+      }
+    }
+
     $NsisScript  = Join-Path $env:TEMP ("{0}-{1}-{2}-installer.nsi" -f $PluginName, $Version, $ArchTag)
     # Resolve to absolute path — NSIS runs from %TEMP%, relative paths fail
     $OutDirAbs   = [System.IO.Path]::GetFullPath($OutDir)
@@ -376,10 +390,36 @@ if ($MakeNSIS) {
     $nsis.Add('ShowUninstDetails show')
     $nsis.Add('')
     $nsis.Add('!include "x64.nsh"')
+    $nsis.Add('!include "LogicLib.nsh"')
     $nsis.Add('')
     $nsis.Add('Section "Install"')
     $nsis.Add('  SetShellVarContext all')
+    $nsis.Add('  DetailPrint ""')
+    $nsis.Add('  DetailPrint "=========================================="')
+    $nsis.Add("  DetailPrint `"$PluginName v$Version Installer`"")
+    $nsis.Add('  DetailPrint "=========================================="')
+    $nsis.Add('  DetailPrint ""')
     $nsis.Add('')
+
+    # Add WebView2 installation step if bootstrapper is available
+    if (Test-Path $WebView2BootstrapperPath) {
+      $nsis.Add('  ; Install WebView2 Runtime (required for plugin UI)')
+      $nsis.Add('  DetailPrint "Installing Microsoft Edge WebView2 Runtime..."')
+      $nsis.Add("  File /oname=WebView2Setup.exe `"$WebView2BootstrapperPath`"")
+      $nsis.Add('  ExecWait "$INSTDIR\WebView2Setup.exe /silent /install"')
+      $nsis.Add('  Delete "$INSTDIR\WebView2Setup.exe"')
+      $nsis.Add('')
+    }
+
+    # Add WebView2 info message
+    if (Test-Path $WebView2BootstrapperPath) {
+      $nsis.Add('  DetailPrint ""')
+      $nsis.Add('  DetailPrint "========== IMPORTANT =========="')
+      $nsis.Add('  DetailPrint "Installing Microsoft Edge WebView2 Runtime..."')
+      $nsis.Add('  DetailPrint "This is required for the plugin UI."')
+      $nsis.Add('  DetailPrint "=============================="')
+      $nsis.Add('  DetailPrint ""')
+    }
 
     # Architecture check: universal and x64 accept both x64 and ARM64 Windows.
     # ARM64-only build requires ARM64 or x64 (x64 translation still runs the DLL fine
