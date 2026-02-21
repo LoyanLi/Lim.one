@@ -1,0 +1,62 @@
+.PHONY: help status commit version build package full release-menu quick-commit
+
+PROJECT_NAME := Lim.one
+RELEASE_SCRIPT := ./release.sh
+QUICK_SCRIPT := ./release-quick.sh
+
+help:
+	@echo "$(PROJECT_NAME) Release Management"
+	@echo ""
+	@echo "Usage: make -f Makefile.release [target]"
+	@echo ""
+	@echo "Targets:"
+	@echo "  status           - Check git status"
+	@echo "  commit MSG=msg   - Commit with message and push"
+	@echo "  version          - Update version"
+	@echo "  build            - Build project"
+	@echo "  package          - Create release package"
+	@echo "  full             - Run full release pipeline"
+	@echo "  release-menu     - Interactive release menu"
+	@echo ""
+	@echo "Quick commands:"
+	@echo "  make -f Makefile.release quick-commit MSG='your message'"
+	@echo "  make -f Makefile.release build"
+	@echo "  make -f Makefile.release package"
+	@echo ""
+
+status:
+	@git status
+
+commit:
+	@if [ -z "$(MSG)" ]; then \
+		echo "Error: MSG required. Usage: make commit MSG='commit message'"; \
+		exit 1; \
+	fi
+	@git add -A
+	@git commit -m "$(MSG)"
+	@read -p "Push to remote? (y/n) " -n 1 -r; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		git push; \
+	fi
+
+quick-commit:
+	@if [ -z "$(MSG)" ]; then \
+		echo "Error: MSG required. Usage: make quick-commit MSG='message'"; \
+		exit 1; \
+	fi
+	@$(QUICK_SCRIPT) commit "$(MSG)"
+
+version:
+	@bash -c 'echo "3" | $(RELEASE_SCRIPT)'
+
+build:
+	@bash -c 'echo "4" | $(RELEASE_SCRIPT)'
+
+package:
+	@bash -c 'echo "5" | $(RELEASE_SCRIPT)'
+
+full:
+	@bash -c 'echo "6" | $(RELEASE_SCRIPT)'
+
+release-menu:
+	@$(RELEASE_SCRIPT)

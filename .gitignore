@@ -1,0 +1,41 @@
+# Build directories
+build/
+build_limone/
+Builds/
+cmake-build-*/
+.vs/
+*.vcxproj.user
+
+# IDEs
+.idea/
+.vscode/
+.trae/
+*.jucer
+*.sln
+*.vcxproj
+*.xcodeproj/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Dist
+dist/
+*.pkg
+*.exe
+*.zip
+
+# SDKs - proprietary SDKs should not be committed
+SDKs/aax-sdk-2-9-0/
+SDKs/JUCE/
+
+# Local configuration
+user_defaults.xml
+
+# Personal / local quick scripts (not committed to repo)
+release.command
+my-*.sh
+local-*.sh
+*.local.sh
+personal/
+local/

@@ -1,0 +1,113 @@
+{
+  "app": "Lim.one",
+  "latest": "0.1.0",
+  "url": "https://lumlayers.com/apps/limone/",
+  "releases": [
+    {
+      "version": "0.1.0",
+      "date": "2026-02-22",
+      "notes": [
+        "Open source release: project hosted on GitHub.",
+        "Automated builds: GitHub Actions builds macOS and Windows on every push.",
+        "Installer generation: macOS produces a .pkg installer; Windows produces a .zip (manual) and a .exe NSIS one-click installer.",
+        "Automated release: pushing a version tag automatically creates a GitHub Release with all platform installers attached."
+      ]
+    },
+    {
+      "version": "0.0.10",
+      "date": "2026-02-21",
+      "notes": [
+        "Real-time Optimization: Changed Modern Limiter Lookahead buffer to pre-allocated ring buffer, eliminating dynamic memory allocation risks during parameter adjustments.",
+        "Documentation Refactor: Extracted parameter list into a separate CSV file and simplified technical documentation.",
+        "Manual Update: Improved descriptions for UI Mode and the Link System."
+      ]
+    },
+    {
+      "version": "0.0.9",
+      "date": "2026-02-21",
+      "notes": [
+        "Refactored Advanced Panel: Full overlay view with dynamic parameter display based on Limiter Mode.",
+        "Fixed Linking System: Resolved synchronization issues with 'Reset Links' and 'Link' buttons preventing accidental unlinking.",
+        "Improved Gesture System: Enhanced distinction between user interactions and automation for better stability.",
+        "Optimized Interaction: Disabled mouse wheel value changes on the advanced panel to prevent accidental edits.",
+        "Architecture Improvements: Enhanced parameter synchronization and locking mechanisms."
+      ]
+    },
+    {
+      "version": "0.0.8",
+      "date": "2026-02-20",
+      "notes": [
+        "Split Clipper/Limiter algorithms into independent implementation files (Soft/Hard and Classic/Modern).",
+        "Added 'clipper_mode' parameter for Clipper mode selection.",
+        "UI: Changed Clipper/Limiter modes and Oversampling to dropdown menus and moved them to the top-left of the knobs.",
+        "UI: Disabled keyboard focus triggering for dropdown menus."
+      ]
+    },
+    {
+      "version": "0.0.7",
+      "date": "2026-02-19",
+      "notes": [
+        "Included Lookahead in system latency compensation; consistent latency for Classic/Modern.",
+        "Unified latency for Oversampling combinations and added difference alignment (including clip bypass scenarios).",
+        "Delta function: Outputs the difference processed by Clip/Limiter; drive gain is automatically compensated after Limiter; added Delta switch to the main page.",
+        "Fixed low output level issue under oversampling (unified +0.1 dB compensation).",
+        "Fixed high-frequency rolloff caused by ADAA in the Clipper linear region.",
+        "ADAA is now only enabled when knee > 0.",
+        "Moved oversampling compensation to the processing stage before Delta difference calculation."
+      ]
+    },
+    {
+      "version": "0.0.6",
+      "date": "2026-02-16",
+      "notes": [
+        "Fixed warnings.",
+        "Added scaling function."
+      ]
+    },
+    {
+      "version": "0.0.5",
+      "date": "2026-02-16",
+      "notes": [
+        "Added check for updates function.",
+        "Fixed check for updates getting stuck on Checking and eventually timing out: requestId overflow caused response packet matching failure."
+      ]
+    },
+    {
+      "version": "0.0.4",
+      "date": "2026-02-16",
+      "notes": [
+        "Merged True Peak with ISP Safety: Enabling True Peak defaults to enabling post-ISP safety.",
+        "True Peak no longer forces Limiter to at least 4x: Limiter runs according to Oversampling selection; when below 4x, 4x reconstruction detection and safety limiting are appended to the output.",
+        "Migrated True Peak/ISP detection standard to oversampling domain: removed 3-point parabolic interpolation approximation."
+      ]
+    },
+    {
+      "version": "0.0.3",
+      "date": "2026-02-16",
+      "notes": [
+        "Rewrote Web UI, adding complete visualization: Waveform, Clip/Limit GR, LUFS Short-Term history trajectory.",
+        "Added visualization settings: Ticks / Range / Speed, with persistence and automatic restoration.",
+        "Visualization continues scrolling when playback stops/pauses: reconstructed interpolation logic to eliminate stuttering and twitching.",
+        "Added In/Out knobs: Out max limited to +1 dB, default Out=-0.1 dB."
+      ]
+    },
+    {
+      "version": "0.0.2",
+      "date": "2026-02-15",
+      "notes": [
+        "Unified plugin naming to Lim.one (consistent product name/interface text).",
+        "Forced Windows to use WebView2 backend to avoid page load failures caused by IE kernel.",
+        "Fully offline Web UI resources: recursively packaged web directory resources and extended resource provider to support arbitrary paths.",
+        "Localized fonts: Built-in Inter and JetBrains Mono (woff2/woff) to ensure complete offline styles.",
+        "Fixed macOS installer script: more robust positioning of artefacts and pkg output."
+      ]
+    },
+    {
+      "version": "0.0.1",
+      "date": "2026-02-14",
+      "notes": [
+        "Initial version."
+      ]
+    }
+  ]
+}

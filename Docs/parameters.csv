@@ -1,0 +1,32 @@
+ID,Display Name,Type,Range,Default,Unit
+in_gain,Input Gain,Float,-24.0 -> 24.0 (step 0.01),0.0,dB
+drive,Input Drive / Clip Gain,Float,0.0 -> 18.0,0.0,dB
+knee,Knee,Float,0.0 -> 1.0,0.0,Normalized
+clipper_mode,Clipper Mode,Choice,Soft / Hard,Soft,-
+limiter_drive,Limiter Drive / Limit Gain,Float,0.0 -> 18.0,0.0,dB
+character,Character,Float,0.0 -> 1.0,0.5,Normalized
+ceiling,Ceiling,Float,-1.0 -> 0.0,-0.1,dB
+out_gain,Output Gain,Float,-24.0 -> 1.0 (step 0.01),-0.1,dB
+true_peak,True Peak,Bool,Off/On,On,-
+delta,Delta,Bool,Off/On,Off,-
+limiter_mode,Limiter Mode,Choice,Classic / Modern,Modern,-
+oversampling,Oversampling,Choice,Off / 2x / 4x / 8x / 16x,4x,-
+lookahead,Lookahead,Float,0.00 -> 5.00 (step 0.01),2.00,ms
+ui_mode,UI Mode,Choice,Simple / Adv,Simple,-
+modern_hold_ms,Modern Hold,Float,0.00 -> 10.00,4.00,ms
+modern_hold_release_ms,Modern Hold Release,Float,0.05 -> 10.00,1.50,ms
+modern_attack_tau_div,Modern Attack Tau Div,Float,0.25 -> 8.00,2.50,-
+modern_release_smooth_base_ms,Modern Release Smooth Base,Float,0.00 -> 20.00,1.50,ms
+modern_release_smooth_range_ms,Modern Release Smooth Range,Float,0.00 -> 50.00,6.00,ms
+modern_adapt_fast_strength,Modern Adapt Fast Strength,Float,0.00 -> 8.00,1.50,-
+modern_adapt_slow_strength,Modern Adapt Slow Strength,Float,0.00 -> 16.00,3.00,-
+modern_sc_hpf_hz,Modern SC HPF,Float,20 -> 400 (step 1),120,Hz
+modern_ratio_base,Modern Ratio Base,Float,0.10 -> 3.00,1.50,-
+modern_ratio_slope,Modern Ratio Slope,Float,0.00 -> 1.50,0.90,-
+modern_transient_mix,Modern Transient Mix,Float,0.00 -> 1.00 (step 0.001),0.30,-
+modern_soft_safety_strength,Modern Soft Safety Strength,Float,0.00 -> 20.00,6.00,-
+modern_release_fast_ms,Modern Release Fast,Float,0.05 -> 20.00,2.00,ms
+modern_release_slow_ms,Modern Release Slow,Float,0.10 -> 200.0 (step 0.1),30.0,ms
+modern_link_transients,Modern Link Transients,Float,0.00 -> 1.00 (step 0.001),0.50,-
+modern_link_release,Modern Link Release,Float,0.00 -> 1.00 (step 0.001),0.95,-
+ui_scale,UI Scale,Float,50 -> 200 (step 1),100,%

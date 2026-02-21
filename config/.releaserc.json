@@ -1,0 +1,42 @@
+{
+  "project": {
+    "name": "Lim.one",
+    "description": "A high-performance, two-stage loudness processor plugin"
+  },
+  "build": {
+    "directory": "build_limone",
+    "type": "cmake",
+    "config": "Release",
+    "parallel": true
+  },
+  "version": {
+    "file": "CMakeLists.txt",
+    "pattern": "project(.*VERSION\\s+([0-9]+\\.[0-9]+\\.[0-9]+))"
+  },
+  "git": {
+    "remote": "origin",
+    "main_branch": "main",
+    "auto_push": false
+  },
+  "package": {
+    "output_dir": "dist",
+    "include_files": [
+      "README.md",
+      "LICENSE"
+    ],
+    "include_dirs": [
+      "Docs"
+    ],
+    "formats": [
+      "tar.gz",
+      "zip"
+    ]
+  },
+  "hooks": {
+    "pre_commit": [],
+    "post_commit": [],
+    "pre_build": [],
+    "post_build": [],
+    "pre_package": []
+  }
+}

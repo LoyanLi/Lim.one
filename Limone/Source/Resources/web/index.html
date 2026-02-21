@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Lim.one</title>
+    <link rel="stylesheet" href="css/fonts.css">
+    <script src="js/tailwind.js"></script>
+    
+    <!-- Plugin Scripts -->
+    <script src="js/ipc.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/controls.js"></script>
+    <script src="js/init.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#FACC15",
+                        "accent-blue": "#FACC15",
+                        "accent-red": "#FACC15",
+                        "background-light": "#F3F4F6",
+                        "surface-light": "#FFFFFF",
+                        "meter-dark": "#18181B",
+                        "meter-bg": "#27272A",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    },
+                    boxShadow: {
+                        'glow': '0 0 10px rgba(250, 204, 21, 0.45)',
+                        'knob': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                        'inner-light': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
+                    }
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        .knob-stroke {
+            stroke-dasharray: 327;
+            stroke-dashoffset: 327;
+        }
+        
+        .knob-lg-stroke {
+            stroke-dasharray: 516;
+            stroke-dashoffset: 516;
+        }
+        
+        .meter-clip-gradient {
+            background: linear-gradient(to bottom, #ef4444, #f87171);
+        }
+        .meter-limit-gradient {
+            background: linear-gradient(to bottom, #facc15, #fde047);
+        }
+
+        .meter-out-gradient {
+            background: linear-gradient(to right, #facc15, #fde047);
+        }
+
+        .viz-grid {
+            background-image:
+                linear-gradient(to right, rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+            background-size: 48px 48px;
+        }
+        
+        /* Disable text selection */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #scale-outer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #scale-inner {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform-origin: 50% 50%;
+            transform: translate(-50%, -50%) scale(1);
+            width: 100%;
+            height: 100%;
+        }
+
+        #select-ui-scale {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: none;
+        }
+
+        .flat-select {
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: none;
+        }
+    </style>
+</head>
+<body class="bg-surface-light h-screen w-screen overflow-hidden m-0 font-display">
+    <div id="scale-outer">
+        <div id="scale-inner">
+            <div class="w-full h-full flex flex-col">
+
+
+        <!-- Main Content -->
+        <div class="flex flex-1 relative">
+            <div class="flex-1 min-w-0 bg-white relative flex flex-col">
+                <div class="absolute top-6 left-10 text-gray-100 text-8xl font-black select-none pointer-events-none z-0 tracking-tighter opacity-40">LIM.ONE</div>
+                <div class="absolute top-5 left-8 flex items-center space-x-3 z-20">
+                    <button id="btn-true-peak" class="flex items-center space-x-2 group">
+                        <div class="relative inline-flex items-center h-4 rounded-full w-8 bg-gray-200 transition-colors group-hover:bg-gray-300">
+                            <span id="tp-indicator" class="translate-x-1 inline-block w-3 h-3 transform bg-white border border-gray-300 rounded-full shadow transition-transform"></span>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-600">True Peak</span>
+                    </button>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-semibold text-gray-600">Delta</span>
+                        <button id="btn-delta" class="text-[10px] font-bold text-gray-500 hover:text-primary transition-colors bg-gray-100 px-2 py-0.5 rounded border border-gray-200">Off</button>
+                    </div>
+                </div>
+
+                <div class="absolute top-5 right-8 flex items-center space-x-2 z-20">
+                    <button id="btn-adv-menu" class="text-gray-400 hover:text-primary transition-colors">
+                        <span class="text-lg leading-none">≡</span>
+                    </button>
+                </div>
+                <div class="flex flex-col flex-1 min-h-0 pt-14 px-8 pb-4">
+                    <div class="flex flex-1 min-h-0 gap-6 z-10">
+                        <div class="w-[190px] flex-none">
+                            <div id="knobs-area" class="flex flex-col items-center gap-7">
+                                <div class="flex flex-col items-center group cursor-ns-resize" data-drag-param="drive">
+                                    <div class="relative w-20 h-20">
+                                        <svg class="w-full h-full transform rotate-[135deg]" viewBox="0 0 112 112" preserveAspectRatio="xMidYMid meet">
+                                            <circle cx="56" cy="56" fill="none" r="52" stroke="#F3F4F6" stroke-width="4" stroke-dasharray="245 327" stroke-linecap="round"></circle>
+                                            <circle id="arc-drive" class="knob-stroke" cx="56" cy="56" fill="none" r="52" stroke="#FACC15" stroke-width="4" stroke-linecap="round"></circle>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="w-14 h-14 rounded-full bg-gray-50 shadow-knob border border-gray-100 flex items-center justify-center">
+                                                <div id="needle-drive" class="absolute inset-0 flex items-start justify-center pointer-events-none origin-center">
+                                                    <div class="w-1 h-5 bg-primary rounded-full mt-2"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-center">
+                                        <div class="flex items-center justify-center gap-1.5 mb-1">
+                                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Clip Gain</div>
+                                            <select id="select-clipper-mode" class="flat-select text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer focus:outline-none" tabindex="-1" onfocus="this.blur()">
+                                                <option value="0">Soft</option>
+                                                <option value="1">Hard</option>
+                                            </select>
+                                        </div>
+                                        <div id="val-drive" class="bg-gray-100 px-2.5 py-0.5 rounded text-xs font-mono font-medium text-gray-700">+0.00 dB</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-center group cursor-ns-resize" data-drag-param="knee">
+                                    <div class="relative w-20 h-20">
+                                        <svg class="w-full h-full transform rotate-[135deg]" viewBox="0 0 112 112" preserveAspectRatio="xMidYMid meet">
+                                            <circle cx="56" cy="56" fill="none" r="52" stroke="#F3F4F6" stroke-width="4" stroke-dasharray="245 327" stroke-linecap="round"></circle>
+                                            <circle id="arc-knee" class="knob-stroke" cx="56" cy="56" fill="none" r="52" stroke="#FACC15" stroke-width="4" stroke-linecap="round"></circle>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="w-14 h-14 rounded-full bg-gray-50 shadow-knob border border-gray-100 flex items-center justify-center">
+                                                <div id="needle-knee" class="absolute inset-0 flex items-start justify-center pointer-events-none origin-center">
+                                                    <div class="w-1 h-5 bg-primary rounded-full mt-2"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-center">
+                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Knee</div>
+                                        <div id="val-knee" class="bg-gray-100 px-2.5 py-0.5 rounded text-xs font-mono font-medium text-gray-700">0%</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col items-center group cursor-ns-resize" data-drag-param="limiter_drive">
+                                    <div class="relative w-20 h-20">
+                                        <svg class="w-full h-full transform rotate-[135deg]" viewBox="0 0 112 112" preserveAspectRatio="xMidYMid meet">
+                                            <circle cx="56" cy="56" fill="none" r="52" stroke="#F3F4F6" stroke-width="4" stroke-dasharray="245 327" stroke-linecap="round"></circle>
+                                            <circle id="arc-limiter_drive" class="knob-stroke" cx="56" cy="56" fill="none" r="52" stroke="#FACC15" stroke-width="4" stroke-linecap="round"></circle>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="w-14 h-14 rounded-full bg-gray-50 shadow-knob border border-gray-100 flex items-center justify-center">
+                                                <div id="needle-limiter_drive" class="absolute inset-0 flex items-start justify-center pointer-events-none origin-center">
+                                                    <div class="w-1 h-5 bg-primary rounded-full mt-2"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-center">
+                                        <div class="flex items-center justify-center gap-1.5 mb-1">
+                                            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Limit Gain</div>
+                                            <select id="select-limiter-mode" class="flat-select text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 cursor-pointer focus:outline-none" tabindex="-1" onfocus="this.blur()">
+                                                <option value="0">Classic</option>
+                                                <option value="1">Modern</option>
+                                            </select>
+                                        </div>
+                                        <div id="val-limiter_drive" class="bg-gray-100 px-2.5 py-0.5 rounded text-xs font-mono font-medium text-gray-700">+0.00 dB</div>
+                                    </div>
+                                </div>
+
+                                <div id="knob-character" class="flex flex-col items-center group cursor-ns-resize" data-drag-param="character">
+                                    <div class="relative w-20 h-20">
+                                        <svg class="w-full h-full transform rotate-[135deg]" viewBox="0 0 112 112" preserveAspectRatio="xMidYMid meet">
+                                            <circle cx="56" cy="56" fill="none" r="52" stroke="#F3F4F6" stroke-width="4" stroke-dasharray="245 327" stroke-linecap="round"></circle>
+                                            <circle id="arc-character" class="knob-stroke" cx="56" cy="56" fill="none" r="52" stroke="#FACC15" stroke-width="4" stroke-linecap="round"></circle>
+                                        </svg>
+                                        <div class="absolute inset-0 flex items-center justify-center">
+                                            <div class="w-14 h-14 rounded-full bg-gray-50 shadow-knob border border-gray-100 flex items-center justify-center">
+                                                <div id="needle-character" class="absolute inset-0 flex items-start justify-center pointer-events-none origin-center">
+                                                    <div class="w-1 h-5 bg-primary rounded-full mt-2"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3 text-center">
+                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Character</div>
+                                        <div id="val-character" class="bg-gray-100 px-2.5 py-0.5 rounded text-xs font-mono font-medium text-gray-700">50%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-1 min-w-0 min-h-0 gap-3">
+                            <div class="flex-1 min-w-0 min-h-0 relative group">
+                                <div id="viz-area" class="absolute inset-0 rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
+                                    <div class="absolute inset-0 viz-grid"></div>
+                                </div>
+                                <div id="advanced-panel" class="hidden absolute inset-0 bg-white rounded-xl border border-gray-200 z-20 flex flex-col overflow-hidden">
+                                    <div class="h-12 px-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
+                                        <div class="flex items-center gap-3">
+                                            <div class="text-xs font-bold text-gray-600 uppercase tracking-widest">Advanced</div>
+                                            <button id="btn-reset-links" class="text-[10px] font-bold text-primary hover:opacity-80 transition-opacity bg-primary/10 px-2 py-0.5 rounded border border-primary/30">Reset Links</button>
+                                        </div>
+                                        <button id="btn-advanced-close" class="text-gray-400 hover:text-gray-700 transition-colors">
+                                            <span class="text-lg leading-none">×</span>
+                                        </button>
+                                    </div>
+                    
+                                    <div class="flex-1 overflow-y-auto p-6">
+                                        <div class="space-y-5">
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Lookahead</div>
+                                                    <div id="val-lookahead" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">2.00 ms</div>
+                                                </div>
+                                                <input id="slider-lookahead" data-param="lookahead" type="range" min="0" max="5" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Add lookahead to catch transients earlier. Higher is steadier but adds latency.</div>
+                                            </div>
+                    
+                                            <div data-group="modern">
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Hold</div>
+                                                        <button id="btn-link-modern_hold_ms" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_hold_ms_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_hold_ms" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">4.00 ms</div>
+                                                </div>
+                                                <input id="slider-modern_hold_ms" data-param="modern_hold_ms" type="range" min="0" max="10" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Minimum time to hold gain reduction. Higher helps avoid chatter.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Hold Rel</div>
+                                                        <button id="btn-link-modern_hold_release_ms" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_hold_release_ms_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_hold_release_ms" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">1.50 ms</div>
+                                                </div>
+                                                <input id="slider-modern_hold_release_ms" data-param="modern_hold_release_ms" type="range" min="0.05" max="10" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Transition time from Hold into Release. Higher sounds smoother.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Atk Tau Div</div>
+                                                        <button id="btn-link-modern_attack_tau_div" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_attack_tau_div_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_attack_tau_div" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">2.50</div>
+                                                </div>
+                                                <input id="slider-modern_attack_tau_div" data-param="modern_attack_tau_div" type="range" min="0.25" max="8" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Attack time constant divisor. Lower is faster and harder.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Rel Smth B</div>
+                                                        <button id="btn-link-modern_release_smooth_base_ms" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_release_smooth_base_ms_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_release_smooth_base_ms" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">1.50 ms</div>
+                                                </div>
+                                                <input id="slider-modern_release_smooth_base_ms" data-param="modern_release_smooth_base_ms" type="range" min="0" max="20" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Base time for release smoothing. Higher is smoother but slower.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Rel Smth R</div>
+                                                        <button id="btn-link-modern_release_smooth_range_ms" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_release_smooth_range_ms_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_release_smooth_range_ms" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">6.00 ms</div>
+                                                </div>
+                                                <input id="slider-modern_release_smooth_range_ms" data-param="modern_release_smooth_range_ms" type="range" min="0" max="50" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Additional range for release smoothing. Higher increases adaptiveness.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Adpt Fast</div>
+                                                        <button id="btn-link-modern_adapt_fast_strength" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_adapt_fast_strength_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_adapt_fast_strength" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">1.50</div>
+                                                </div>
+                                                <input id="slider-modern_adapt_fast_strength" data-param="modern_adapt_fast_strength" type="range" min="0" max="8" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Fast adaptation strength. Higher rebounds quicker and follows groove more.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Adpt Slow</div>
+                                                        <button id="btn-link-modern_adapt_slow_strength" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_adapt_slow_strength_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_adapt_slow_strength" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">3.00</div>
+                                                </div>
+                                                <input id="slider-modern_adapt_slow_strength" data-param="modern_adapt_slow_strength" type="range" min="0" max="16" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Slow adaptation strength. Higher is steadier with less pumping.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">SC HPF</div>
+                                                        <button id="btn-link-modern_sc_hpf_hz" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_sc_hpf_hz_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_sc_hpf_hz" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">120 Hz</div>
+                                                </div>
+                                                <input id="slider-modern_sc_hpf_hz" data-param="modern_sc_hpf_hz" type="range" min="20" max="400" step="1" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Sidechain high-pass. Higher reduces low-end triggering and preserves bass.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio Base</div>
+                                                    <div id="val-modern_ratio_base" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">1.50</div>
+                                                </div>
+                                                <input id="slider-modern_ratio_base" data-param="modern_ratio_base" type="range" min="0.1" max="3" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Base compression ratio (higher is more aggressive).</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio Slope</div>
+                                                    <div id="val-modern_ratio_slope" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">0.90</div>
+                                                </div>
+                                                <input id="slider-modern_ratio_slope" data-param="modern_ratio_slope" type="range" min="0" max="1.5" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Ratio slope as gain reduction increases.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Tr Mix</div>
+                                                        <button id="btn-link-modern_transient_mix" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_transient_mix_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_transient_mix" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">0.300</div>
+                                                </div>
+                                                <input id="slider-modern_transient_mix" data-param="modern_transient_mix" type="range" min="0" max="1" step="0.001" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Transient/steady blend. Higher preserves transients.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Soft Safe</div>
+                                                    <div id="val-modern_soft_safety_strength" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">6.00</div>
+                                                </div>
+                                                <input id="slider-modern_soft_safety_strength" data-param="modern_soft_safety_strength" type="range" min="0" max="20" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Soft safety limiting strength. Higher reduces overshoot but rounds more.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Rel Fast</div>
+                                                        <button id="btn-link-modern_release_fast_ms" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_release_fast_ms_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_release_fast_ms" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">2.00 ms</div>
+                                                </div>
+                                                <input id="slider-modern_release_fast_ms" data-param="modern_release_fast_ms" type="range" min="0.05" max="20" step="0.01" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Fast release time constant. Affects bounce after short peaks.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Rel Slow</div>
+                                                        <button id="btn-link-modern_release_slow_ms" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_release_slow_ms_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_release_slow_ms" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">30.0 ms</div>
+                                                </div>
+                                                <input id="slider-modern_release_slow_ms" data-param="modern_release_slow_ms" type="range" min="0.1" max="200" step="0.1" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Slow release time constant. Affects recovery under sustained limiting.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Link Tr</div>
+                                                        <button id="btn-link-modern_link_transients" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_link_transients_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_link_transients" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">0.500</div>
+                                                </div>
+                                                <input id="slider-modern_link_transients" data-param="modern_link_transients" type="range" min="0" max="1" step="0.001" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Stereo transient linking. Higher keeps L/R more consistent.</div>
+                                            </div>
+                    
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <div class="flex items-center gap-2">
+                                                        <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">Link Rel</div>
+                                                        <button id="btn-link-modern_link_release" class="text-[9px] font-bold text-gray-300 hover:text-primary transition-colors border border-gray-200 rounded px-1" data-link-param="modern_link_release_link">LINK</button>
+                                                    </div>
+                                                    <div id="val-modern_link_release" class="bg-gray-100 px-3 py-1 rounded text-sm font-mono font-medium text-gray-700">0.950</div>
+                                                </div>
+                                                <input id="slider-modern_link_release" data-param="modern_link_release" type="range" min="0" max="1" step="0.001" class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-primary" />
+                                                <div class="mt-1 text-[10px] leading-snug text-gray-400">Stereo release linking. Higher reduces left/right image wobble.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+    
+                            <div class="flex-none flex items-stretch gap-2 min-h-0">
+                                <div class="flex items-stretch gap-2 min-h-0">
+                                    <div class="relative flex-none w-[22px] flex items-stretch gap-1 min-h-0">
+                                        <div class="relative w-4 flex-1 min-h-0 bg-gray-100/80 rounded-[2px] overflow-hidden">
+                                        <div id="meter-clip-bar-l" class="absolute left-0 top-0 w-full h-[0%] opacity-80 meter-clip-gradient rounded-b-[2px] transition-all duration-75 ease-out"></div>
+                                        <div id="meter-clip-hold-l" class="absolute left-0 right-0 h-px bg-red-500/70 -translate-y-1/2"></div>
+                                    </div>
+                                        <div class="relative w-4 flex-1 min-h-0 bg-gray-100/80 rounded-[2px] overflow-hidden">
+                                        <div id="meter-clip-bar-r" class="absolute left-0 top-0 w-full h-[0%] opacity-80 meter-clip-gradient rounded-b-[2px] transition-all duration-75 ease-out"></div>
+                                        <div id="meter-clip-hold-r" class="absolute left-0 right-0 h-px bg-red-500/70 -translate-y-1/2"></div>
+                                    </div>
+                                    <div id="meter-clip-scale" class="absolute inset-0 pointer-events-none"></div>
+                                </div>
+
+                                    <div class="relative flex-none w-[22px] flex items-stretch gap-1 min-h-0">
+                                        <div class="relative w-4 flex-1 min-h-0 bg-gray-100/80 rounded-[2px] overflow-hidden">
+                                        <div id="meter-limit-bar-l" class="absolute left-0 top-0 w-full h-[0%] opacity-80 meter-limit-gradient rounded-b-[2px] transition-all duration-75 ease-out"></div>
+                                        <div id="meter-limit-hold-l" class="absolute left-0 right-0 h-px bg-primary/70 -translate-y-1/2"></div>
+                                    </div>
+                                        <div class="relative w-4 flex-1 min-h-0 bg-gray-100/80 rounded-[2px] overflow-hidden">
+                                        <div id="meter-limit-bar-r" class="absolute left-0 top-0 w-full h-[0%] opacity-80 meter-limit-gradient rounded-b-[2px] transition-all duration-75 ease-out"></div>
+                                        <div id="meter-limit-hold-r" class="absolute left-0 right-0 h-px bg-primary/70 -translate-y-1/2"></div>
+                                    </div>
+                                    <div id="meter-limit-scale" class="absolute inset-0 pointer-events-none"></div>
+                                </div>
+                                </div>
+                                <div class="flex-none flex items-center justify-center pl-1">
+                                    <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest" style="writing-mode: vertical-rl; transform: rotate(180deg);">GR</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loudness Sidebar -->
+            <div class="w-40 bg-meter-dark border-l border-gray-800 flex flex-col items-center py-8 relative">
+                <div class="absolute inset-0 bg-gradient-to-b from-meter-dark to-black opacity-60 pointer-events-none"></div>
+                <div class="relative z-10 w-full flex flex-col h-full justify-between items-center px-2 text-center">
+                    <div class="flex flex-col items-center space-y-1 mb-8">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Loudness</span>
+                        <span class="text-[9px] text-primary font-mono bg-primary/10 px-1.5 py-0.5 rounded">LUFS</span>
+                    </div>
+                    <div class="flex flex-col space-y-10 w-full">
+                        <div class="flex flex-col items-center">
+                            <span class="text-[9px] font-semibold text-gray-500 uppercase tracking-widest mb-1">ST</span>
+                            <span id="val-lufs-st" class="text-3xl font-mono font-bold text-white tracking-tighter tabular-nums inline-block -translate-x-[0.5ch]">-∞</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-[9px] font-semibold text-gray-500 uppercase tracking-widest mb-1">INT</span>
+                            <span id="val-lufs-int" class="text-2xl font-mono font-medium text-gray-300 tracking-tighter tabular-nums inline-block -translate-x-[0.5ch]">-∞</span>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <span class="text-[9px] font-semibold text-gray-500 uppercase tracking-widest mb-1">MOM</span>
+                            <span id="val-lufs-mom" class="text-2xl font-mono font-medium text-gray-400 tracking-tighter tabular-nums inline-block -translate-x-[0.5ch]">-∞</span>
+                        </div>
+                    </div>
+                    <div class="mt-auto w-full flex flex-col items-center space-y-4 pt-8 border-t border-gray-800/50">
+                        <button id="btn-reset-loudness" class="hover:text-white transition-colors uppercase text-[9px] font-mono tracking-wider flex flex-col items-center group text-gray-500">
+                            <span class="text-base mb-1 group-hover:rotate-180 transition-transform">↻</span>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settings-backdrop" class="hidden absolute inset-0 bg-black/30 z-40"></div>
+            <div id="settings-panel" class="hidden absolute inset-0 z-50 flex items-center justify-center p-4">
+                <div class="w-[520px] max-w-full bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
+                    <div class="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-start justify-between">
+                        <div>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Authorization</div>
+                        </div>
+                        <button id="btn-settings-close" class="text-gray-400 hover:text-gray-700 transition-colors">
+                            <span class="text-lg leading-none">×</span>
+                        </button>
+                    </div>
+
+                    <div class="p-4 grid gap-2 text-sm">
+                        <div id="settings-block-license" class="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">License</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Status</div>
+                                    <div id="settings-auth-status" class="font-mono font-semibold text-gray-900 text-right">-</div>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Action</div>
+                                    <button id="btn-license-deactivate" class="text-xs font-bold text-gray-600 hover:text-gray-800 transition-colors bg-gray-100 px-3 py-1 rounded border border-gray-200">Deactivate</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="settings-block-about" class="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">About</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Version</div>
+                                    <div id="settings-version" class="font-mono font-semibold text-gray-900 text-right">-</div>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Updates</div>
+                                    <button id="btn-check-update" class="text-xs font-bold text-primary hover:opacity-80 transition-colors bg-primary/10 px-2 py-0.5 rounded border border-primary/30">Check</button>
+                                </div>
+                                <div id="settings-update-status" class="text-[11px] font-semibold text-gray-400"></div>
+                            </div>
+                        </div>
+
+                        <div id="settings-block-visualization" class="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Visualization</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Ticks</div>
+                                    <button id="btn-viz-ticks" class="text-xs font-bold text-primary hover:opacity-80 transition-colors bg-primary/10 px-2 py-0.5 rounded border border-primary/30">3 dB</button>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Range</div>
+                                    <button id="btn-viz-range" class="text-xs font-bold text-primary hover:opacity-80 transition-colors bg-primary/10 px-2 py-0.5 rounded border border-primary/30">18 dB</button>
+                                </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Speed</div>
+                                    <button id="btn-viz-speed" class="text-xs font-bold text-primary hover:opacity-80 transition-colors bg-primary/10 px-2 py-0.5 rounded border border-primary/30">Med</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="settings-block-ui" class="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">UI</div>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="text-gray-500">Scale</div>
+                                    <select id="select-ui-scale" class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 focus:outline-none" tabindex="-1" onfocus="this.blur()">
+                                        <option value="75">75%</option>
+                                        <option value="100">100%</option>
+                                        <option value="125">125%</option>
+                                        <option value="150">150%</option>
+                                        <option value="175">175%</option>
+                                        <option value="200">200%</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="settings-block-activate" class="rounded-xl border border-gray-100 bg-white px-4 py-3">
+                            <div class="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">Activate</div>
+                            <div class="grid gap-2">
+                                <input id="license-code" type="text" placeholder="License Key (20 chars)" class="w-full px-3 py-1 rounded-lg border border-gray-200 bg-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40" />
+                                <div class="flex items-center gap-2 pt-1 justify-end">
+                                    <button id="btn-license-activate" class="text-xs font-bold text-white hover:opacity-90 transition-colors bg-primary px-3 py-1 rounded">Activate</button>
+                                </div>
+                                <div id="license-result" class="hidden text-xs font-semibold"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="alert-backdrop" class="hidden absolute inset-0 bg-black/40 z-[70] flex items-center justify-center p-6">
+                <div class="w-[420px] max-w-full bg-white border border-gray-200 shadow-2xl rounded-2xl overflow-hidden">
+                    <div class="px-5 py-4 bg-gray-50 border-b border-gray-200 flex items-start justify-between">
+                        <div>
+                            <div id="alert-title" class="text-base font-black text-gray-900 tracking-tight">Alert</div>
+                            <div id="alert-sub" class="mt-0.5 text-xs font-semibold text-gray-400 uppercase tracking-widest">Message</div>
+                        </div>
+                        <button id="btn-alert-close" class="text-gray-400 hover:text-gray-700 transition-colors">
+                            <span class="text-lg leading-none">×</span>
+                        </button>
+                    </div>
+                    <div class="p-5">
+                        <div id="alert-message" class="text-sm font-semibold text-gray-700 whitespace-pre-wrap break-words"></div>
+                        <div class="pt-4 flex justify-end">
+                            <button id="btn-alert-ok" class="text-xs font-bold text-white hover:opacity-90 transition-colors bg-primary px-3 py-1 rounded">OK</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="h-12 bg-gray-50 border-t border-gray-200 px-6 flex items-center justify-between z-20">
+            <div class="flex items-center gap-8">
+                <div class="flex items-center gap-3 group cursor-ns-resize" data-drag-param="in_gain">
+                    <div class="relative w-9 h-9">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-6 h-6 rounded-full bg-white shadow-knob border border-gray-100 flex items-center justify-center">
+                                <div id="needle-in_gain" class="absolute inset-0 flex items-start justify-center pointer-events-none origin-center">
+                                    <div class="w-0.5 h-3 bg-primary rounded-full mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col leading-none">
+                        <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">In</div>
+                        <div id="val-in_gain" class="mt-1 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-gray-700">+0.00 dB</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 group cursor-ns-resize" data-drag-param="out_gain">
+                    <div class="relative w-9 h-9">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-6 h-6 rounded-full bg-white shadow-knob border border-gray-100 flex items-center justify-center">
+                                <div id="needle-out_gain" class="absolute inset-0 flex items-start justify-center pointer-events-none origin-center">
+                                    <div class="w-0.5 h-3 bg-primary rounded-full mt-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col leading-none">
+                        <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Out</div>
+                        <div id="val-out_gain" class="mt-1 bg-gray-100 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-gray-700">-0.10 dB</div>
+                    </div>
+                </div>
+            </div>
+                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">OS</span>
+                    <select id="select-oversampling" class="flat-select text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded border border-primary/30 focus:outline-none cursor-pointer" tabindex="-1" onfocus="this.blur()">
+                        <option value="0">Off</option>
+                        <option value="1">2x</option>
+                        <option value="2">4x</option>
+                        <option value="3">8x</option>
+                        <option value="4">16x</option>
+                    </select>
+                </div>
+                <button id="btn-settings" class="text-gray-400 hover:text-primary transition-colors">
+                    <span class="text-lg leading-none">⚙</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+        </div>
+    </div>
+</body>
+</html>
