@@ -22,6 +22,20 @@ A high-performance, two-stage loudness processor plugin (Clipper + Limiter) desi
   - Integrated LUFS loudness metering (Short-term, Momentary, Integrated).
   - Waveform display with adjustable range and speed.
 
+## Version History
+
+**Latest: v0.1.1** - Parameter isolation and selective global preferences
+
+### Changelog
+
+For detailed release notes and version history, see [CHANGELOG.md](CHANGELOG.md).
+
+Key improvements in v0.1.1:
+- ✅ Complete parameter isolation between DAW projects
+- ✅ Selective global parameter persistence (UI scale, visualization settings)
+- ✅ Fixed cross-project parameter pollution
+- ✅ Improved parameter architecture (JUCE best practices)
+
 ## Release Management
 
 This project includes an automated release management system. See [QUICKSTART.md](QUICKSTART.md) for quick start guide.
@@ -33,6 +47,7 @@ This project includes an automated release management system. See [QUICKSTART.md
 ```
 
 📚 **Documentation:**
+- [CHANGELOG.md](CHANGELOG.md) - Version history and release notes
 - [QUICKSTART.md](QUICKSTART.md) - 30 second quick start
 - [docs/release/RELEASE-README.md](docs/release/RELEASE-README.md) - Complete guide
 - [docs/release/RELEASE-CHEATSHEET.md](docs/release/RELEASE-CHEATSHEET.md) - Command reference
