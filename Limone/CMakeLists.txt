@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(LimOne VERSION 0.1.0)
+project(LimOne VERSION 0.1.1)
 
 # Build universal binaries on macOS (Intel x86_64 + Apple Silicon arm64)
 if(APPLE)

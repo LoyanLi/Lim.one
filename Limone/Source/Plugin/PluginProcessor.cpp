@@ -31,7 +31,12 @@ ClipperLimiterAudioProcessor::ClipperLimiterAudioProcessor()
                        ),
        apvts(*this, nullptr, "Parameters", createParameterLayout())
 {
-    loadUserDefaultsFromDisk();
+    // Load global preference parameters (ui_scale, viz_ticks, viz_range, viz_speed)
+    // These parameters persist across all projects and are not affected by DAW state
+    loadGlobalPreferences();
+
+    // Do not load user defaults here - DAW will provide project state via setStateInformation()
+    // User defaults are loaded lazily in prepareToPlay() if DAW hasn't provided state
     apvts.state.addListener (this);
 
     apvts.addParameterListener("character", this);
@@ -42,7 +47,7 @@ ClipperLimiterAudioProcessor::ClipperLimiterAudioProcessor()
     }
 
     resetLinks();
-    startTimerHz (2);
+    // Timer removed - no longer auto-saving parameters to global file
 }
 
 ClipperLimiterAudioProcessor::~ClipperLimiterAudioProcessor()
@@ -98,26 +103,86 @@ void ClipperLimiterAudioProcessor::saveUserDefaultsToDisk()
     f.replaceWithText (xml->toString());
 }
 
-void ClipperLimiterAudioProcessor::valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&)
+void ClipperLimiterAudioProcessor::loadUserDefaultsIfNeeded()
 {
-    if (suppressUserDefaultsListener)
+    // Completely disabled: No user defaults are loaded globally
+    // This ensures parameters are never contaminated from previous projects
+    // All new plugin instances start with clean, built-in defaults
+    // Parameters are managed exclusively by DAW via setStateInformation()
+}
+
+void ClipperLimiterAudioProcessor::loadGlobalPreferences()
+{
+    // Load global preference parameters that persist across all projects
+    // These parameters: ui_scale, viz_ticks, viz_range, viz_speed
+    const auto f = getUserDefaultsFile();
+    if (!f.existsAsFile())
         return;
 
-    userDefaultsDirty.store (true);
-    userDefaultsLastChangeMs.store ((int64_t) juce::Time::getMillisecondCounter());
+    const auto xmlText = f.loadFileAsString();
+    std::unique_ptr<juce::XmlElement> xml(juce::XmlDocument::parse(xmlText));
+    if (!xml)
+        return;
+
+    auto state = juce::ValueTree::fromXml(*xml);
+    if (!state.isValid())
+        return;
+
+    // Only load specific global preference parameters
+    const std::vector<juce::String> globalParams = {
+        "ui_scale", "viz_ticks", "viz_range", "viz_speed"
+    };
+
+    const juce::ScopedValueSetter<bool> scoped(suppressUserDefaultsListener, true);
+    for (const auto& paramId : globalParams)
+    {
+        if (auto* param = apvts.getParameter(paramId))
+        {
+            auto paramValue = state.getProperty(paramId, param->getValue());
+            param->setValueNotifyingHost(float(paramValue));
+        }
+    }
+}
+
+void ClipperLimiterAudioProcessor::saveGlobalPreferences()
+{
+    // Save global preference parameters to user_defaults.xml
+    // Only saves: ui_scale, viz_ticks, viz_range, viz_speed
+    auto state = apvts.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
+    if (!xml)
+        return;
+
+    // Filter to only global preference parameters
+    const std::vector<juce::String> globalParams = {
+        "ui_scale", "viz_ticks", "viz_range", "viz_speed"
+    };
+
+    auto globalPrefsXml = std::make_unique<juce::XmlElement>("GlobalPreferences");
+    for (const auto& paramId : globalParams)
+    {
+        if (auto* param = apvts.getParameter(paramId))
+        {
+            globalPrefsXml->setAttribute(paramId, param->getValue());
+        }
+    }
+
+    auto f = getUserDefaultsFile();
+    f.getParentDirectory().createDirectory();
+    f.replaceWithText(globalPrefsXml->toString());
+}
+
+void ClipperLimiterAudioProcessor::valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&)
+{
+    // Disabled: No longer auto-saving parameters to global file
+    // Parameters are managed by DAW via setStateInformation() / getStateInformation()
+    // User defaults are loaded once at prepareToPlay() if DAW hasn't provided state
 }
 
 void ClipperLimiterAudioProcessor::timerCallback()
 {
-    if (! userDefaultsDirty.load())
-        return;
-
-    const auto now = (int64_t) juce::Time::getMillisecondCounter();
-    if (now - userDefaultsLastChangeMs.load() < 750)
-        return;
-
-    userDefaultsDirty.store (false);
-    saveUserDefaultsToDisk();
+    // Disabled: Parameter auto-save mechanism removed
+    // No longer need to save parameter changes to disk automatically
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout ClipperLimiterAudioProcessor::createParameterLayout()
@@ -198,8 +263,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout ClipperLimiterAudioProcessor
     params.push_back(std::make_unique<juce::AudioParameterFloat>("modern_link_release", "Modern Link Release", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.95f));
     params.push_back(std::make_unique<juce::AudioParameterBool>("modern_link_release_link", "Link Modern Link Release", true));
 
+    // Visualization parameters (global preferences - not affected by DAW project)
+    params.push_back(std::make_unique<juce::AudioParameterChoice>("viz_ticks", "Viz Ticks",
+        juce::StringArray { "Off", "6dB", "3dB" }, 2));
+    params.push_back(std::make_unique<juce::AudioParameterChoice>("viz_range", "Viz Range",
+        juce::StringArray { "12dB", "18dB", "30dB" }, 1));
+    params.push_back(std::make_unique<juce::AudioParameterChoice>("viz_speed", "Viz Speed",
+        juce::StringArray { "Fast", "Med", "Slow" }, 1));
+
+    // UI Scale parameter (global preference - not affected by DAW project)
     params.push_back(std::make_unique<juce::AudioParameterFloat>("ui_scale", "UI Scale", juce::NormalisableRange<float>(50.0f, 200.0f, 1.0f), 100.0f));
-    
+
     return { params.begin(), params.end() };
 }
 
@@ -382,6 +456,10 @@ void ClipperLimiterAudioProcessor::applyDeltaDelay(juce::AudioBuffer<float>& buf
 void ClipperLimiterAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
+
+    // Lazy-load user defaults if DAW hasn't provided project state
+    loadUserDefaultsIfNeeded();
+
     clipperModule.prepare(sampleRate);
     limiterModule.prepare(sampleRate);
 
@@ -999,6 +1077,9 @@ void ClipperLimiterAudioProcessor::getStateInformation (juce::MemoryBlock& destD
 
 void ClipperLimiterAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
+    // Mark that we received initial state from DAW
+    hasReceivedInitialState.store(true);
+
     isLoadingPreset.store(true);
 
     // 1. Save current Link states
@@ -1006,6 +1087,17 @@ void ClipperLimiterAudioProcessor::setStateInformation (const void* data, int si
     for (const auto& id : linkedParams) {
         auto* p = apvts.getParameter(id + "_link");
         if (p) linkStates[id] = p->getValue();
+    }
+
+    // 2. Save current global preference parameters (ui_scale, viz_ticks, viz_range, viz_speed)
+    // These should not be overwritten by DAW project state
+    std::map<juce::String, float> globalParamValues;
+    const std::vector<juce::String> globalParams = {
+        "ui_scale", "viz_ticks", "viz_range", "viz_speed"
+    };
+    for (const auto& id : globalParams) {
+        if (auto* p = apvts.getParameter(id))
+            globalParamValues[id] = p->getValue();
     }
 
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
@@ -1047,6 +1139,14 @@ void ClipperLimiterAudioProcessor::setStateInformation (const void* data, int si
     for (const auto& pair : linkStates) {
         auto* p = apvts.getParameter(pair.first + "_link");
         if (p) p->setValueNotifyingHost(pair.second);
+    }
+
+    // Restore global preference parameters (ui_scale, viz_ticks, viz_range, viz_speed)
+    // These parameters should not be changed by DAW project loading
+    const juce::ScopedValueSetter<bool> scoped(suppressUserDefaultsListener, true);
+    for (const auto& [id, value] : globalParamValues) {
+        if (auto* p = apvts.getParameter(id))
+            p->setValueNotifyingHost(value);
     }
 
     // Recalculate Linked parameters based on new Character
@@ -1153,8 +1253,17 @@ void ClipperLimiterAudioProcessor::parameterChanged (const juce::String& paramet
         auto* linkParam = apvts.getParameter(parameterID + "_link");
         if (linkParam && linkParam->getValue() > 0.5f)
         {
-            linkParam->setValueNotifyingHost(0.0f); 
+            linkParam->setValueNotifyingHost(0.0f);
         }
+    }
+
+    // Save global preference parameters if any of them changed
+    const std::vector<juce::String> globalParams = {
+        "ui_scale", "viz_ticks", "viz_range", "viz_speed"
+    };
+    if (std::find(globalParams.begin(), globalParams.end(), parameterID) != globalParams.end())
+    {
+        saveGlobalPreferences();
     }
 }
 

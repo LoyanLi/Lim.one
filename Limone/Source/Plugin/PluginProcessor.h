@@ -76,6 +76,7 @@ public:
 private:
     std::atomic<bool> isUpdatingFromCharacter { false };
     std::atomic<bool> isLoadingPreset { false };
+    std::atomic<bool> hasReceivedInitialState { false };
 
     // Gesture state
     juce::CriticalSection gestureLock;
@@ -86,6 +87,9 @@ private:
     juce::File getUserDefaultsFile() const;
     void loadUserDefaultsFromDisk();
     void saveUserDefaultsToDisk();
+    void loadUserDefaultsIfNeeded();
+    void loadGlobalPreferences();
+    void saveGlobalPreferences();
 
     void valueTreePropertyChanged (juce::ValueTree&, const juce::Identifier&) override;
     void timerCallback() override;
