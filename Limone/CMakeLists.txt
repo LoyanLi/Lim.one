@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.15)
 
 project(LimOne VERSION 0.1.0)
 
+# Build universal binaries on macOS (Intel x86_64 + Apple Silicon arm64)
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS" FORCE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version" FORCE)
+    message(STATUS "macOS universal binary: arm64;x86_64")
+endif()
+
 add_subdirectory(JUCE)
 
 juce_add_plugin(LimOne
